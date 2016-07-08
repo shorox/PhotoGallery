@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +24,8 @@ public class PhotoGalleryFragment extends Fragment{
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
 
+    private int lastFetchedPage = 1;
+
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
     }
@@ -31,7 +34,7 @@ public class PhotoGalleryFragment extends Fragment{
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        new FetchItemTask().execute();
+        new FetchItemTask().execute(lastFetchedPage);
     }
 
     @Override
@@ -39,7 +42,16 @@ public class PhotoGalleryFragment extends Fragment{
         View v = inflater.inflate(R.layout.fragment_photo_gallery, container, false);
         mPhotoRecyclerView = (RecyclerView) v.findViewById(R.id.fragment_photo_gallery_recycler_view);
         mPhotoRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
-
+        mPhotoRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if(!recyclerView.canScrollVertically(1)){
+                    new FetchItemTask().execute(lastFetchedPage);
+                    Log.i(TAG, "page: " + lastFetchedPage);
+                }
+            }
+        });
         setupAdapter();
 
         return v;
@@ -89,16 +101,22 @@ public class PhotoGalleryFragment extends Fragment{
         }
     }
 
-    private class FetchItemTask extends AsyncTask<Void, Void, List<GalleryItem>> {
+    private class FetchItemTask extends AsyncTask<Integer, Void, List<GalleryItem>> {
         @Override
-        protected List<GalleryItem> doInBackground(Void... params) {
-            return new FlickrFetchr().fetchItems();
+        protected List<GalleryItem> doInBackground(Integer... params) {
+            return new FlickrFetchr().fetchItems(params[0]);
         }
 
         @Override
         protected void onPostExecute(List<GalleryItem> galleryItems) {
-            mItems = galleryItems;
-            setupAdapter();
+            if (lastFetchedPage > 1) {
+                mItems.addAll(galleryItems);
+                mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
+            } else {
+                mItems = galleryItems;
+                setupAdapter();
+            }
+            lastFetchedPage++;
         }
     }
 }
