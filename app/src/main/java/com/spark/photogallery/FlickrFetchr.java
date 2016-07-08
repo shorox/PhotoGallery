@@ -79,7 +79,7 @@ public class FlickrFetchr {
     }
 
     private void parseItems(List<GalleryItem> items, JSONObject jsonBody) throws IOException, JSONException{
-        JSONObject photosJsonObject = jsonBody.getJSONObject("photo");
+        JSONObject photosJsonObject = jsonBody.getJSONObject("photos");
         JSONArray photoJsonArray = photosJsonObject.getJSONArray("photo");
 
         for (int i = 0; i < photoJsonArray.length(); i++) {
